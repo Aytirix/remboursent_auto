@@ -46,8 +46,13 @@
                 });
             };
             // Insérez le bouton après le bouton 'Ajouter un Retour vide'
+            try{
             var existingInput = document.querySelector("input[value='Ajouter un Retour vide']");
             existingInput.insertAdjacentElement('afterend', newInput);
+            } catch (e) {
+                console.log("Une erreur est survenu lors e l'initiation du remboursement auto");
+                console.log(e);
+            }
         }
 
         // rechercher les retours en attente
