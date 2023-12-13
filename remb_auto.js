@@ -20,7 +20,13 @@
             this.id = null;
             this.avoir_ou_remboursement = null;
             this.debug = false; // Si true : ne passe pas le/les retour(s) en Retour terminé
+            this.copy = false;
+            this.montant_total_remb = 0;
+        }
 
+        exposeObjectToConsole() {
+            // Exposer l'objet obj_remb_auto en tant que propriété de window
+            window.obj_remb_auto = this;
         }
 
         start() {
@@ -40,15 +46,28 @@
                                 console.log("Produit à rembourser : ");
                                 console.log(produit_a_rembourser);
                                 self.Remboursement_Automatique(produit_a_rembourser);
+                                //Modifier le bouton partialRefund pour mettre potentiellement à jour le status de la commande
+                                console.log("pass1");
+                                var partialRefundButton = document.querySelector('#start_products > div > form > div.panel > div.partial_refund_fields > button');
+                                if (partialRefundButton) {
+                                    partialRefundButton.onclick = function () {
+                                        var t = self.update_statut_commande(obj_remb_auto);
+                                    };
+                                }
+                                console.log("montant total à rembourser : " + self.montant_total_remb);
+                                if (self.copy) {
+                                    self.copyToClipboard(self.montant_total_remb);
+                                }
+                                self.exposeObjectToConsole();
                             }
                         });
                     }
                 });
             };
             // Insérez le bouton après le bouton 'Ajouter un Retour vide'
-            try{
-            var existingInput = document.querySelector("input[value='Ajouter un Retour vide']");
-            existingInput.insertAdjacentElement('afterend', newInput);
+            try {
+                var existingInput = document.querySelector("input[value='Ajouter un Retour vide']");
+                existingInput.insertAdjacentElement('afterend', newInput);
             } catch (e) {
                 console.log("Une erreur est survenu lors e l'initiation du remboursement auto");
                 console.log(e);
@@ -143,6 +162,8 @@
                 }
 
                 if (nb_produits_remb != 0) {
+                    // ajouter le montant au total le montant à rembourser :
+                    this.montant_total_remb += parseFloat(retours_en_attente[i].retour.querySelector("td:nth-child(8)").innerText.replace(',', '.')) || 0;
                     // Passer le retour en Retour terminé
                     await this.retour_termine(retours_en_attente[i].retour);
                 } else {
@@ -155,6 +176,7 @@
                 alert("Aucun produit à rembourser a été trouvé");
                 return false;
             }
+
 
             reloadReturnPanel();
             return produit_a_rembourser;
@@ -195,7 +217,32 @@
 
         async Remboursement_Automatique(produit_a_rembourser) {
             // Cliquez sur le bouton remboursement partiel
-            document.querySelector('#desc-order-partial_refund').click();
+            try {
+                document.querySelector('#desc-order-partial_refund').click();
+            } catch (e) {
+
+                var btn_a = document.createElement("a");
+
+                // Configuration des attributs de la balise <a>
+                btn_a.id = "desc-order-partial_refund";
+                btn_a.className = "btn btn-default";
+                btn_a.href = "#refundForm";
+
+                // Création de la balise <i> et ajout de la classe
+                var i = document.createElement("i");
+                i.className = "icon-exchange";
+
+                // Ajout de la balise <i> à la balise <a>
+                btn_a.appendChild(i);
+
+                // Ajout du texte directement après la balise <i>
+                var text = document.createTextNode(" Remboursement partiel");
+                btn_a.appendChild(text);
+
+                var elem_add = document.querySelector('[class="span label label-inactive"]');
+                elem_add.insertAdjacentElement('afterend', btn_a);
+                document.querySelector('#desc-order-partial_refund').click();
+            }
 
             // Récupéré tous les éléments de la commande
             var elements = document.querySelectorAll('#orderProducts > tbody > tr[class="product-line-row"]');
@@ -235,8 +282,8 @@
                     // Vérifier que la quantité est supérieur à la quantité à rembourser
                     // récupéré la quantité total commandé de ce produit
                     //Si exception, le produit a déjà été remboursé, donc on l'ignore
-                    try{
-                    var quantite = elem_remb.querySelector('div').innerText;
+                    try {
+                        var quantite = elem_remb.querySelector('div').innerText;
                     } catch (e) {
                         continue;
                     }
@@ -298,7 +345,6 @@
                 prod = elements[index];
                 // Mettre à jour la quantité à rembourser
                 inputElem = prod.querySelector('td:nth-child(15) input');
-                debugger;
                 remb_qtt = parseInt(inputElem.value, 10) + parseInt(remb.quantite, 10);
                 prod.querySelector('td:nth-child(15) input').value = remb_qtt;
                 // Tester si le produit est gratuit ou payant
@@ -330,6 +376,11 @@
                 // Si les frais de port sont supérieur à 0
                 if (frais_port > 0) {
                     document.querySelector(' [name="partialRefundShippingCost"]').value = frais_port;
+                    if (this.avoir_ou_remboursement == "Remboursement") {
+                        this.montant_total_remb += frais_port;
+                    } else {
+                        this.montant_total_remb = 0;
+                    }
                 }
             }
         }
@@ -339,11 +390,11 @@
         // param : b : chaine de caractère 2
         // return : nombre de points
         levenshteinDistance(a, b) {
-            const sizeMapping = { "XS": 0, "S": 1, "M": 2, "L": 3, "XL": 4, "XXL": 5, "XXXL": 6, "Unique": 7, "S / M": 8 , "L / XL": 9 };
+            const sizeMapping = { "XS": 0, "S": 1, "M": 2, "L": 3, "XL": 4, "XXL": 5, "XXXL": 6, "Unique": 7, "S / M": 8, "L / XL": 9 };
 
             function extractSize(str) {
                 const match = str.split(/[:\-]/);
-                return match[match.length-1].trim() || "";
+                return match[match.length - 1].trim() || "";
             }
 
             const sizeA = extractSize(a);
@@ -368,7 +419,7 @@
             // Adjusting the distance by the size difference
             ret += sizeDifference;
             // Inverting the distance to have more points if the distance is small
-            console.log(a+" | b" + " | " + Math.max(a.length, b.length) - ret);
+            console.log(a + " | b" + " | " + Math.max(a.length, b.length) - ret);
             return Math.max(a.length, b.length) - ret;
         }
 
@@ -386,22 +437,72 @@
             }
             return str;
         }
-    }
-    // Agrandir la taille de la case échange pour voir le contenu de la case en entier
-    $("a[id^='details_details']").on('click', function (event) {
-        // attendre que le tableau soit chargé
-        setTimeout(function () {
-            var elem = document.querySelectorAll("#form-configuration > div.panel.col-lg-12 > div.table-responsive-row.clearfix > table > tbody > tr > td:nth-child(6) > select");
-            for (var p = 0; p < elem.length; p++) {
-                elem[p].style = "width: auto;";
+
+        update_statut_commande(obj_remb_auto) {
+            if (obj_remb_auto.avoir_ou_remboursement !== "Avoir") {
+                return;
             }
-        }, 1500);
-    });
+
+            function getParameterByName(name, url) {
+                if (!url) url = window.location.href;
+                name = name.replace(/[\[\]]/g, '\\$&');
+                var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
+                var results = regex.exec(url);
+                if (!results) return null;
+                if (!results[2]) return '';
+                return decodeURIComponent(results[2].replace(/\+/g, ' '));
+            }
+
+            var token = getParameterByName('token');
+            var id_order = getParameterByName('id_order');
+
+            var formData = new FormData();
+            formData.append('id_order_state', '73');
+            formData.append('id_order', id_order);
+            formData.append('submitState', ''); // Ajoutez "submitState" avec une valeur vide
+
+            var xhr = new XMLHttpRequest();
+
+            var url = 'index.php?controller=AdminOrders&vieworder&token=' + token;
+
+            xhr.open('POST', url, true);
+
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    console.log(xhr.responseText);
+                }
+            };
+            xhr.send(formData);
+        }
+
+        copyToClipboard(text) {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(function () {
+                    console.log('Texte copié dans le presse-papiers : ' + text);
+                }).catch(function (err) {
+                    console.error('Erreur lors de la copie dans le presse-papiers : ', err);
+                });
+            } else {
+                // Utiliser une approche de secours pour les navigateurs qui ne prennent pas en charge l'API Clipboard
+                var textArea = document.createElement("textarea");
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                console.log('Texte copié dans le presse-papiers : ' + text);
+            }
+        }
+    }
+
+
     try {
-        var obj = new retour();
-        obj.start();
+        const obj_remb_auto = new retour();
+        obj_remb_auto.start();
     } catch (e) {
         alert("Une erreur est survenu lors du remboursement automatique");
         console.log(e);
     }
-})();
+}
+
+)();
