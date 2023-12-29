@@ -20,7 +20,7 @@
             this.id = null;
             this.avoir_ou_remboursement = null;
             this.debug = false; // Si true : ne passe pas le/les retour(s) en Retour terminé
-            this.copy = false;
+            this.copy = true;
             this.montant_total_remb = 0;
         }
 
@@ -47,7 +47,6 @@
                                 console.log(produit_a_rembourser);
                                 self.Remboursement_Automatique(produit_a_rembourser);
                                 //Modifier le bouton partialRefund pour mettre potentiellement à jour le status de la commande
-                                console.log("pass1");
                                 var partialRefundButton = document.querySelector('#start_products > div > form > div.panel > div.partial_refund_fields > button');
                                 if (partialRefundButton) {
                                     partialRefundButton.onclick = function () {
@@ -56,6 +55,7 @@
                                 }
                                 console.log("montant total à rembourser : " + self.montant_total_remb);
                                 if (self.copy) {
+                                    self.montant_total_remb.toFixed(2);
                                     self.copyToClipboard(self.montant_total_remb);
                                 }
                                 self.exposeObjectToConsole();
@@ -163,7 +163,7 @@
 
                 if (nb_produits_remb != 0) {
                     // ajouter le montant au total le montant à rembourser :
-                    this.montant_total_remb += parseFloat(retours_en_attente[i].retour.querySelector("td:nth-child(8)").innerText.replace(',', '.')) || 0;
+                    // this.montant_total_remb += parseFloat(retours_en_attente[i].retour.querySelector("td:nth-child(8)").innerText.replace(',', '.')) || 0;
                     // Passer le retour en Retour terminé
                     await this.retour_termine(retours_en_attente[i].retour);
                 } else {
@@ -344,6 +344,11 @@
                 // Récupérer le produit
                 prod = elements[index];
                 // Mettre à jour la quantité à rembourser
+                if (this.avoir_ou_remboursement == "Remboursement") {
+                    var productPriceText = prod.querySelector('[class="product_price_show"]').textContent; // Obtenez le texte complet, par exemple "59,99 €"
+                    var productPriceValue = parseFloat(productPriceText.replace(/[^\d.,]/g, '').replace(',', '.')); // Extrait le montant numérique
+                    this.montant_total_remb = this.montant_total_remb + productPriceValue * parseInt(remb.quantite, 10);
+                }
                 inputElem = prod.querySelector('td:nth-child(15) input');
                 remb_qtt = parseInt(inputElem.value, 10) + parseInt(remb.quantite, 10);
                 prod.querySelector('td:nth-child(15) input').value = remb_qtt;
@@ -419,7 +424,6 @@
             // Adjusting the distance by the size difference
             ret += sizeDifference;
             // Inverting the distance to have more points if the distance is small
-            console.log(a + " | b" + " | " + Math.max(a.length, b.length) - ret);
             return Math.max(a.length, b.length) - ret;
         }
 
