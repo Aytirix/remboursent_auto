@@ -55,7 +55,7 @@
                                 }
                                 console.log("montant total à rembourser : " + self.montant_total_remb);
                                 if (self.copy) {
-                                    self.montant_total_remb.toFixed(2);
+                                    self.montant_total_remb = self.montant_total_remb.toFixed(2);
                                     self.copyToClipboard(self.montant_total_remb);
                                 }
                                 self.exposeObjectToConsole();
