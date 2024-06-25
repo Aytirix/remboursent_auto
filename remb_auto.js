@@ -349,9 +349,9 @@
                     var productPriceValue = parseFloat(productPriceText.replace(/[^\d.,]/g, '').replace(',', '.')); // Extrait le montant numérique
                     this.montant_total_remb = this.montant_total_remb + productPriceValue * parseInt(remb.quantite, 10);
                 }
-                inputElem = prod.querySelector('td:nth-child(15) input');
+                inputElem = prod.querySelector('[name^="partialRefundProductQuantity"]');
                 remb_qtt = parseInt(inputElem.value, 10) + parseInt(remb.quantite, 10);
-                prod.querySelector('td:nth-child(15) input').value = remb_qtt;
+                prod.querySelector('[name^="partialRefundProductQuantity"]').value = remb_qtt;
                 // Tester si le produit est gratuit ou payant
                 var test = parseFloat(prod.querySelector('[class="total_product"]').innerText.replace(",", ".").trim());
                 // ajouter le produit à la liste des produits remboursés
